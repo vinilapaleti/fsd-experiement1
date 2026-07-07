@@ -1,45 +1,47 @@
-// index.js
+const express = require('express');
 
-const express = require('express'); 
-
-const app = express();
+const bodyParser = require('body-parser'); const app = express();
 const port = 3000;
 
-// Custom middleware function for logging requests
-const requestLogger = (req, res, next) => {
-	const timestamp = new Date().toISOString(); 
-	console.log(`${timestamp} - ${req.method} ${req.url}`); 
-	next(); // Pass control to the next middleware or route handler 
-};
+// Middleware to parse JSON request bodies 
+app.use(bodyParser.json());
 
-// Custom middleware for authentication 
-const authenticateUser = (req, res, next) => {
+// In-memory data storage (temporary for demo) 
+let users = [];
 
-// In a real app, this would involve checking tokens or sessions. 
-	const authToken = req.headers.authorization;
-
-	if (authToken === 'valid-token') {
-		// User is authenticated, proceed to the next middleware or route handler. 
-		next(); 
-	} 
-	else {
-		// User is not authorized, end the request-response cycle. 
-		res.status(401).send('Unauthorized');
+// POST: Accept data (create new user) 
+app.post('/users', (req, res) => {
+	const { id, name, email } = req.body; if (!id || !name || !email) {
+		return res.status(400).json({ error: 'All fields (id, name, email) are required' }); 
 	}
-}
-
-// Apply application-level middleware (runs for all requests) app.use(requestLogger); 
-// Use authentication middleware for a specific route 
-app.get('/secure-route', authenticateUser, (req, res) => {
-	res.send('Welcome to the secure area!'); 
+	
+	// Check if user with same ID exists 
+	if (users.find(user => user.id === id)) {
+		return res.status(409).json({ error: 'User with this ID already exists' }); 
+	}
+	
+	users.push({ id, name, email });	
+	res.status(201).json({ message: 'User added successfully' }); 
 });
 
-// Route handler without specific middleware 
-app.get('/', (req, res) => {
-	res.send('Hello from the main page!'); 
+// GET: Retrieve all users 
+app.get('/users', (req, res) => { 
+	res.status(200).json(users); 
+});
+
+// DELETE: Remove a specific user by ID 
+app.delete('/users/:id', (req, res) => { 
+	const id = req.params.id;
+	const index = users.findIndex(user => user.id === id); 
+	if (index === -1) {
+		return res.status(404).json({ error: 'User not found' }); 
+	}
+
+	const deletedUser = users.splice(index, 1);
+	res.status(200).json({ message: `User ${deletedUser[0].name} deleted successfully` }); 
 });
 
 // Start the server 
 app.listen(port, () => {
-	console.log(`Server is running on port ${port}`); 
+	console.log(`Server running at http://localhost:${port}`); 
 });
