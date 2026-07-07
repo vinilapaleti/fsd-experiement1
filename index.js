@@ -1,44 +1,45 @@
-// app.js
-const express = require('express');
+// index.js
+
+const express = require('express'); 
 
 const app = express();
-const PORT = 3000;
+const port = 3000;
 
-// Middleware to log requests
-app.use((req, res, next) => {
-	console.log(`${req.method} ${req.url}`);
-	next();
+// Custom middleware function for logging requests
+const requestLogger = (req, res, next) => {
+	const timestamp = new Date().toISOString(); 
+	console.log(`${timestamp} - ${req.method} ${req.url}`); 
+	next(); // Pass control to the next middleware or route handler 
+};
+
+// Custom middleware for authentication 
+const authenticateUser = (req, res, next) => {
+
+// In a real app, this would involve checking tokens or sessions. 
+	const authToken = req.headers.authorization;
+
+	if (authToken === 'valid-token') {
+		// User is authenticated, proceed to the next middleware or route handler. 
+		next(); 
+	} 
+	else {
+		// User is not authorized, end the request-response cycle. 
+		res.status(401).send('Unauthorized');
+	}
+}
+
+// Apply application-level middleware (runs for all requests) app.use(requestLogger); 
+// Use authentication middleware for a specific route 
+app.get('/secure-route', authenticateUser, (req, res) => {
+	res.send('Welcome to the secure area!'); 
 });
 
-// 1. Define and Handling a basic route
+// Route handler without specific middleware 
 app.get('/', (req, res) => {
-	res.send('Welcome to the Home page!');
+	res.send('Hello from the main page!'); 
 });
 
-// 2. Route parameters - /user/:id
-app.get('/user/:id', (req, res) => {
-	const userId = req.params.id;
-	res.send(`User id received: ${userId}`);
+// Start the server 
+app.listen(port, () => {
+	console.log(`Server is running on port ${port}`); 
 });
-
-// 3. Query parameters - /search?keyword=books&type=pdf
-app.get('/search', (req, res) => {
-	const { keyword, type } = req.query;
-	res.send(`Search Query Received - Keyword: ${keyword}, Type: ${type}`); 
-});
-
-// 4. URL building example (internal redirect)
-app.get('/redirect-to-user/:name', (req, res) => {
-	const name = req.params.name; // Build a new URL to redirect
-	const userProfileURL = `/profile/${name}?details=full`; res.redirect(userProfileURL);
-});
-
-// 5. Profile Page using both route and query params 
-app.get('/profile/:name', (req, res) => {
-	const name = req.params.name; const details = req.query.details;
-	res.send(`Profile Page of ${name} - Details: ${details}`); 
-});
-
-app.listen(PORT, () => {
-	console.log(`Server running at http://localhost:${PORT}`); 
-});	
